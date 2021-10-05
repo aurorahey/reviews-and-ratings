@@ -4,11 +4,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+### Fixed
+
+-Loading reviews messages translated
+
 ## [Unreleased]
+
+### Fixed
+
+- I18n Bs, Fr, It, Ja, Ko, Nl and Ro.
+
+## [2.11.0] - 2021-09-16
 
 ### Added 
 
-- I18n bs-BA
+- I18n Bg and pseudo language to implement In Context tool.
+
+## [2.12.3] - 2021-09-14
+
+## [2.12.2] - 2021-09-10
+
+### Changed
+
+- Limit number of records
+- Increased timeout
+
+## [2.12.1] - 2021-09-08
+
+### Fixed
+
+- Default to false when Approved is null
+
+## [2.12.0] - 2021-09-07
+
+### Added
+
+- Add setting to display stars in `product-rating-inline` block when the product has no reviews
+- Use locale to format review's date in account admin view 
+
+## [2.11.8] - 2021-08-30
+
+### Fixed
+
+- Fix to editing review
+
+## [2.11.7] - 2021-08-12
+
+### Fixed
+
+- Added a CSS handle for review pagination container
+
+## [2.11.6] - 2021-08-02
+
+### Fixed
+
+- Add loading state to "Submit Review" button to prevent duplicate submissions
+
+## [2.11.5] - 2021-07-23
+
+### Fixed
+
+- When validating app key and token, first validate with VTEX ID to see if key/token pair is valid, then validate with License Manager to see if app key has access to at least one resource
+
+## [2.11.4] - 2021-07-23
+
+### Added
+
+- `Get_Account_By_Identifier` policy
+
+### Security
+
+- Removed sensitive information from log
+
+## [2.11.3] - 2021-07-22
+
+### Fixed
+
+- Fix path in manafest.json
+
+## [2.11.2] - 2021-07-22
+
+### Fixed
+
+- Fix license validate url
+
+## [2.11.1] - 2021-07-16
+
+### Fixed
+
+- Fix to API user validation
+
+## [2.11.0] - 2021-07-15
+
+### Added
+
+- `formSection`, `formBottomLine`, `formRating`, `formName`, `formLocation`, `formEmail`, `formReview`, `formSubmit`, `formInvalidMessage`, `reviewCommentMessage`, `reviewsOrderBy`, `reviewInfo`, `reviewVerifiedPurchase`, `reviewDate`, `reviewDateSubmitted`, `reviewDateValue`, `reviewAuthor`, `reviewAuthorBy`, `reviewAuthorName`, `summaryTotalReviews` and `writeReviewButton` CSS handles.
+
+### Changed
+
+- Review details structure (author and date) from using `ul` to `div` and `span`s.
 
 ## [2.10.2] - 2021-06-02
 
@@ -17,10 +111,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix for anonymous review submission
 
 ## [2.10.1] - 2021-05-27
+
 ### Security
+
 - Showing sensitive information
 
 ## [2.10.0] - 2021-05-03
+
 ### Added
 
 - I18n Fr, It, Kr and Nl.
@@ -32,12 +129,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [2.9.2] - 2021-04-14
 
 ### Fixed
+
 - Added an `id` property to structered data
 
 ## [2.9.1] - 2021-03-16
 
 ### Fixed
+
 - CPU factor by `80`
+
 ## [2.9.0] - 2021-03-10
 
 ### Added
@@ -48,7 +148,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- I18n Jp. 
+- I18n Jp.
 
 ### Changed
 

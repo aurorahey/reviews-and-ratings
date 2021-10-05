@@ -50,7 +50,7 @@ namespace ReviewsRatings.GraphQL
                     IList<Review> searchData = await productReviewService.FilterReviews(searchResult.Result, searchTerm, orderBy, status);
                     int totalCount = searchData.Count;
                     searchData = await productReviewService.LimitReviews(searchData, from, to);
-                    Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
+                    //Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
                     SearchResponse searchResponse = new SearchResponse
                     {
                         Data = new DataElement { data = searchData },
@@ -84,7 +84,7 @@ namespace ReviewsRatings.GraphQL
                     IList<Review> searchData = await productReviewService.FilterReviews(searchResult, searchTerm, orderBy, status);
                     int totalCount = searchData.Count;
                     searchData = await productReviewService.LimitReviews(searchData, from, to);
-                    Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
+                    //Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
                     SearchResponse searchResponse = new SearchResponse
                     {
                         Data = new DataElement { data = searchData },
@@ -122,7 +122,7 @@ namespace ReviewsRatings.GraphQL
                         AppSettings appSettings = await productReviewService.GetAppSettings();
                         if (appSettings.RequireApproval)
                         {
-                            count = searchResult.Where(x => x.Approved).ToList().Count;
+                            count = searchResult.Where(x => x.Approved ?? false).ToList().Count;
                         }
                     }
 
@@ -153,7 +153,7 @@ namespace ReviewsRatings.GraphQL
                     IList<Review> searchData = await productReviewService.FilterReviews(searchResult.Result, searchTerm, orderBy, status);
                     int totalCount = searchData.Count;
                     searchData = await productReviewService.LimitReviews(searchData, from, to);
-                    Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
+                    //Console.WriteLine($"totalCount = {totalCount} : Filtered to {searchData.Count}");
                     SearchResponse searchResponse = new SearchResponse
                     {
                         Data = new DataElement { data = searchData },

@@ -17,7 +17,7 @@
         private readonly IProductReviewRepository _productReviewRepository;
         private readonly IAppSettingsRepository _appSettingsRepository;
         private readonly IIOServiceContext _context;
-        private const int maximumReturnedRecords = 999;
+        private const int maximumReturnedRecords = 500;
         private const string DELIMITER = ":";
 
         public ProductReviewService(IProductReviewRepository productReviewRepository, IAppSettingsRepository appSettingsRepository, IIOServiceContext context)
@@ -68,6 +68,19 @@
                 IList<Review> reviews = await this._productReviewRepository.GetProductReviewsAsync(productId);
                 // Remove the old version
                 Review reviewToRemove = reviews.Where(r => r.Id == review.Id).FirstOrDefault();
+
+                review.Approved = review.Approved ?? reviewToRemove.Approved;
+                review.Location = string.IsNullOrEmpty(review.Location) ? reviewToRemove.Location : review.Location;
+                review.ProductId = string.IsNullOrEmpty(review.ProductId) ? reviewToRemove.ProductId : review.ProductId;
+                review.Rating = review.Rating ?? reviewToRemove.Rating;
+                review.ReviewDateTime = string.IsNullOrEmpty(review.ReviewDateTime) ? reviewToRemove.ReviewDateTime : review.ReviewDateTime;
+                review.ReviewerName = string.IsNullOrEmpty(review.ReviewerName) ? reviewToRemove.ReviewerName : review.ReviewerName;
+                review.ShopperId = string.IsNullOrEmpty(review.ShopperId) ? reviewToRemove.ShopperId : review.ShopperId;
+                review.Sku = string.IsNullOrEmpty(review.Sku) ? reviewToRemove.Sku : review.Sku;
+                review.Text = string.IsNullOrEmpty(review.Text) ? reviewToRemove.Text : review.Text;
+                review.Title = string.IsNullOrEmpty(review.Title) ? reviewToRemove.Title : review.Title;
+                review.VerifiedPurchaser = review.VerifiedPurchaser ?? reviewToRemove.VerifiedPurchaser;
+
                 if (reviewToRemove != null && reviews.Remove(reviewToRemove))
                 {
                     // Add and save the new version
@@ -88,13 +101,13 @@
                 AppSettings settings = await GetAppSettings();
                 if(settings.RequireApproval)
                 {
-                    reviews = reviews.Where(x => x.Approved).ToList();
+                    reviews = reviews.Where(x => x.Approved ?? false).ToList();
                 }
 
                 int numberOfReviews = reviews.Count;
                 if (numberOfReviews > 0)
                 {
-                    decimal totalRating = reviews.Sum(r => r.Rating);
+                    decimal totalRating = reviews.Sum(r => r.Rating ?? 0);
                     averageRating = totalRating / numberOfReviews;
                 }
             }
@@ -122,11 +135,52 @@
             if (lookup != null)
             {
                 List<string> productIds = lookup.Values.Distinct().ToList();
+                int maxProducts = maximumReturnedRecords;
+                int productsCounter = 0;
                 foreach (string productId in productIds)
                 {
                     // Get all results - sort/limit later
                     IList<Review> returnedReviewList = await this.GetReviewsByProductId(productId, 0, maximumReturnedRecords, string.Empty);
-                    reviews.AddRange(returnedReviewList);
+                    if (returnedReviewList.Count > 0)
+                    {
+                        reviews.AddRange(returnedReviewList);
+                        productsCounter++;
+                    }
+                    else
+                    {
+                        // Remove any broken lookup references
+                        try
+                        {
+                            List<int> missingIds = new List<int>();
+                            foreach(var lookupPair in lookup)
+                            {
+                                if (lookupPair.Value == null || lookupPair.Value.Equals(productId))
+                                {
+                                    missingIds.Add(lookupPair.Key);
+                                }
+                            }
+
+                            if (missingIds != null)
+                            {
+                                _context.Vtex.Logger.Warn("GetReviews", null, $"Removing broken lookup ids for product id {productId}\n{string.Join(",", missingIds.ToArray())}");
+                                foreach (int idToRemove in missingIds)
+                                {
+                                    lookup.Remove(idToRemove);
+                                }
+
+                                await _productReviewRepository.SaveLookupAsync(lookup);
+                            }
+                        }
+                        catch(Exception ex)
+                        {
+                            _context.Vtex.Logger.Error("GetReviews", null, $"Error removing broken lookup ids for product id {productId}", ex);
+                        }
+                    }
+
+                    if (productsCounter > maxProducts)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -213,7 +267,7 @@
 
                 if (!string.IsNullOrEmpty(status))
                 {
-                    reviews = reviews.Where(x => x.Approved.Equals(Boolean.Parse(status))).ToList();
+                    reviews = reviews.Where(x => (x.Approved ?? false).Equals(bool.Parse(status))).ToList();
                 }
             }
 
@@ -281,46 +335,54 @@
             return reviews;
         }
 
-        public async Task<Review> NewReview(Review review)
+        public async Task<Review> NewReview(Review review, bool doValidation)
         {
             if (review != null)
             {
-                bool userValidated = false;
-                bool hasShopperReviewed = false;
-                bool hasShopperPurchased = false;
-                string userId = string.Empty;
-                ValidatedUser validatedUser = null;
-                try
+                if (doValidation)
                 {
-                    validatedUser = await this.ValidateUserToken(_context.Vtex.StoreUserAuthToken);
-                }
-                catch(Exception ex)
-                {
-                    _context.Vtex.Logger.Error("NewReview", null, "Error Validating User", ex);
-                }
-                
-                if(validatedUser != null)
-                {
-                    if (validatedUser.AuthStatus.Equals("Success"))
+                    bool userValidated = false;
+                    bool hasShopperReviewed = false;
+                    bool hasShopperPurchased = false;
+                    string userId = string.Empty;
+                    ValidatedUser validatedUser = null;
+                    try
                     {
-                        userValidated = true;
+                        validatedUser = await this.ValidateUserToken(_context.Vtex.StoreUserAuthToken);
                     }
-                }
-
-                if(userValidated)
-                {
-                    userId = validatedUser.User;
-                    hasShopperReviewed = await this.HasShopperReviewed(userId, review.ProductId);
-                    if (hasShopperReviewed)
+                    catch (Exception ex)
                     {
-                        return null;
+                        _context.Vtex.Logger.Error("NewReview", null, "Error Validating User", ex);
                     }
 
-                    hasShopperPurchased = await this.ShopperHasPurchasedProduct(userId, review.ProductId);
+                    if (validatedUser != null)
+                    {
+                        if (validatedUser.AuthStatus.Equals("Success"))
+                        {
+                            userValidated = true;
+                        }
+                    }
+
+                    if (userValidated)
+                    {
+                        userId = validatedUser.User;
+                        hasShopperReviewed = await this.HasShopperReviewed(userId, review.ProductId);
+                        if (hasShopperReviewed)
+                        {
+                            return null;
+                        }
+
+                        hasShopperPurchased = await this.ShopperHasPurchasedProduct(userId, review.ProductId);
+                    }
+
+                    review.ShopperId = userId;
+                    review.VerifiedPurchaser = hasShopperPurchased;
                 }
 
-                review.ShopperId = userId;
-                review.VerifiedPurchaser = hasShopperPurchased;
+                if (review.Approved == null)
+                {
+                    review.Approved = false;
+                }
 
                 IDictionary<int, string> lookup = await _productReviewRepository.LoadLookupAsync();
 
@@ -373,11 +435,17 @@
             IDictionary<int, string> lookup = await _productReviewRepository.LoadLookupAsync();
             if (lookup != null)
             {
+                Console.WriteLine($"lookup =  {lookup.Count}");
                 List<string> productIds = lookup.Values.Distinct().ToList();
                 foreach (string productId in productIds)
                 {
+                    Console.WriteLine($"Removing {productId}");
                     await this._productReviewRepository.SaveProductReviewsAsync(productId, null);
                 }
+            }
+            else
+            {
+                Console.WriteLine("Lookup Null!");
             }
 
             await _productReviewRepository.SaveLookupAsync(null);

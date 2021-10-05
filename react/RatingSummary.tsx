@@ -4,7 +4,7 @@ import { ApolloQueryResult } from 'apollo-client'
 import { useApolloClient } from 'react-apollo'
 import { useProduct } from 'vtex.product-context'
 import { useCssHandles } from 'vtex.css-handles'
-import { FormattedMessage } from 'react-intl'
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl'
 import { Link, canUseDOM } from 'vtex.render-runtime'
 import { Button } from 'vtex.styleguide'
 
@@ -33,6 +33,7 @@ interface AppSettings {
   defaultOpenCount: number
   showGraph: boolean
   displaySummaryIfNone: boolean
+  displayInlineIfNone: boolean
   displaySummaryTotalReviews: boolean
   displaySummaryAddButton: boolean
 }
@@ -70,6 +71,7 @@ const initialState = {
     useLocation: false,
     showGraph: false,
     displaySummaryIfNone: false,
+    displayInlineIfNone: false,
     displaySummaryTotalReviews: true,
     displaySummaryAddButton: false,
   },
@@ -109,9 +111,18 @@ const CSS_HANDLES = [
   'summaryContainer',
   'loginLink',
   'summaryButtonContainer',
+  'summaryTotalReviews',
 ] as const
 
+const messages = defineMessages({
+  loadingReviews: {
+    defaultMessage: 'Loading reviews...',
+    id: 'store/reviews.list.loadingReviews',
+  },
+})
+
 function RatingSummary() {
+  const intl = useIntl()
   const client = useApolloClient()
   const handles = useCssHandles(CSS_HANDLES)
   const { product } = useProduct() ?? {}
@@ -205,7 +216,7 @@ function RatingSummary() {
   return (
     <div className={`${handles.summaryContainer} review-summary mw8 center`}>
       {!state.hasTotal || !state.hasAverage ? (
-        <Fragment>Loading reviews...</Fragment>
+        <Fragment>{intl.formatMessage(messages.loadingReviews)}</Fragment>
       ) : state.total === 0 && !state.settings.displaySummaryIfNone ? null : (
         <Fragment>
           <Helmet>
@@ -227,7 +238,9 @@ function RatingSummary() {
             <Stars rating={state.average} />
           </span>{' '}
           {state.settings.displaySummaryTotalReviews ? (
-            <span className="review__rating--count dib v-mid">
+            <span
+              className={`${handles.summaryTotalReviews} review__rating--count dib v-mid`}
+            >
               ({state.total})
             </span>
           ) : null}

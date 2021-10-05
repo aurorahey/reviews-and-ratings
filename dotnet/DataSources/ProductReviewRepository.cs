@@ -76,13 +76,14 @@
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("GetProductReviewsAsync", null, $"[{response.StatusCode}] {responseContent}");
+                //_context.Vtex.Logger.Info("GetProductReviewsAsync", null, $"[{response.StatusCode}] {responseContent}");
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
+                    _context.Vtex.Logger.Info("GetProductReviewsAsync", null, $"[{response.StatusCode}] {responseContent}");
                     return null;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _context.Vtex.Logger.Error("GetProductReviewsAsync", null, "Request Error", ex);
             }
@@ -92,12 +93,12 @@
             {
                 productReviews = JsonConvert.DeserializeObject<IList<Review>>(responseContent);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"DeserializeObject Error: {ex.Message} ");
+                //Console.WriteLine($"DeserializeObject Error: {ex.Message} ");
                 _context.Vtex.Logger.Error("GetProductReviewsAsync", null, "DeserializeObject Error", ex);
             }
-            
+
             return productReviews;
         }
 
@@ -127,9 +128,9 @@
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("SaveProductReviewsAsync", null, $"[{response.StatusCode}] {responseContent}");
+                //_context.Vtex.Logger.Info("SaveProductReviewsAsync", null, $"[{response.StatusCode}] {responseContent}");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _context.Vtex.Logger.Error("SaveProductReviewsAsync", null, "Request Error", ex);
             }
@@ -156,7 +157,7 @@
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("LoadLookupAsync", null, $"[{response.StatusCode}] {responseContent}");
+                //_context.Vtex.Logger.Info("LoadLookupAsync", null, $"[{response.StatusCode}] {responseContent}");
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     return null;
@@ -174,7 +175,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DeserializeObject Error: {ex.Message} ");
+                //Console.WriteLine($"DeserializeObject Error: {ex.Message} ");
                 _context.Vtex.Logger.Error("LoadLookupAsync", null, "DeserializeObject Error", ex);
             }
 
@@ -207,7 +208,7 @@
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("SaveLookupAsync", null, $"[{response.StatusCode}] {responseContent}");
+                //_context.Vtex.Logger.Info("SaveLookupAsync", null, $"[{response.StatusCode}] {responseContent}");
             }
             catch (Exception ex)
             {
@@ -242,15 +243,15 @@
             {
                 var response = await client.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("ValidateUserToken", null, $"[{response.StatusCode}] {responseContent}");
+                //_context.Vtex.Logger.Info("ValidateUserToken", null, $"[{response.StatusCode}] {responseContent}");
                 if (response.IsSuccessStatusCode)
                 {
                     validatedUser = JsonConvert.DeserializeObject<ValidatedUser>(responseContent);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                _context.Vtex.Logger.Error("ValidateUserToken", null, $"Error validating user token '{token}'", ex);
+                _context.Vtex.Logger.Error("ValidateUserToken", null, $"Error validating user token", ex);
             }
 
             return validatedUser;
@@ -258,44 +259,79 @@
 
         public async Task<bool> ValidateKeyAndToken(string key, string token, string baseUrl)
         {
-            bool validated = false;
-
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri($"http://licensemanager.vtexcommercestable.com.br/license-manager/pvt/accounts/hosts/{baseUrl}")
-            };
+            bool keyAndTokenValidated = false;
+            bool keyHasAccess = false;
 
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[HEADER_VTEX_CREDENTIAL];
-            if (authToken != null)
+
+            if (key != null && token != null)
             {
-                request.Headers.Add(AUTHORIZATION_HEADER_NAME, authToken);
+                ValidateKeyAndToken validateKeyAndToken = new ValidateKeyAndToken
+                {
+                    AppKey = key,
+                    AppToken = token
+                };
+                var jsonSerializedKeyAndToken = JsonConvert.SerializeObject(validateKeyAndToken);
+
+                var vtexIdRequest = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Post,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[VTEX_ACCOUNT_HEADER_NAME]}.{ENVIRONMENT}.com.br/api/vtexid/apptoken/login"),
+                    Content = new StringContent(jsonSerializedKeyAndToken, Encoding.UTF8, APPLICATION_JSON)
+                };
+
+                if (authToken != null)
+                {
+                    vtexIdRequest.Headers.Add(AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                try
+                {
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(vtexIdRequest);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    //_context.Vtex.Logger.Info("ValidateKeyAndToken", null, $"[{response.StatusCode}]");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var validatedKeyAndToken = JsonConvert.DeserializeObject<ValidatedKeyAndToken>(responseContent);
+                        keyAndTokenValidated = validatedKeyAndToken.AuthStatus.Equals("Success");
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ValidateKeyAndToken", null, $"[{response.StatusCode}]");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("ValidateKeyAndToken", null, $"Error validating key and token '{key}'", ex);
+                }
+
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"http://licensemanager.vtexcommercestable.com.br/api/license-manager/pvt/accounts/{this._httpContextAccessor.HttpContext.Request.Headers[VTEX_ACCOUNT_HEADER_NAME]}/logins/{key}/granted")
+                };
+
+                if (authToken != null)
+                {
+                    request.Headers.Add(AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                try
+                {
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    //_context.Vtex.Logger.Info("ValidateKeyAccessGranted", null, $"[{response.StatusCode}] {responseContent}");
+                    keyHasAccess = response.IsSuccessStatusCode && responseContent.Equals("true");
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("ValidateKeyAccessGranted", null, $"Error validating access for key '{key}'", ex);
+                }
             }
 
-            if (key != null)
-            {
-                request.Headers.Add(HEADER_VTEX_APP_KEY, key);
-            }
-
-            if (token != null)
-            {
-                request.Headers.Add(HEADER_VTEX_APP_TOKEN, token);
-            }
-
-            try
-            {
-                var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                string responseContent = await response.Content.ReadAsStringAsync();
-                _context.Vtex.Logger.Info("ValidateKeyAndToken", null, $"[{response.StatusCode}] {responseContent}");
-                validated = response.IsSuccessStatusCode;
-            }
-            catch(Exception ex)
-            {
-                _context.Vtex.Logger.Error("ValidateKeyAndToken", null, $"Error validating key and token '{key}' '{token}'", ex);
-            }
-
-            return validated;
+            return keyAndTokenValidated && keyHasAccess;
         }
 
         public async Task<VtexOrder> GetOrderInformation(string orderId)
@@ -326,7 +362,7 @@
                 if (response.IsSuccessStatusCode)
                 {
                     vtexOrder = JsonConvert.DeserializeObject<VtexOrder>(responseContent);
-                    Console.WriteLine($"GetOrderInformation: [{response.StatusCode}] ");
+                    //Console.WriteLine($"GetOrderInformation: [{response.StatusCode}] ");
                 }
             }
             catch (Exception ex)
