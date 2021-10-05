@@ -97,9 +97,6 @@
   "store/reviews.list.pagination.textOf": "crwdns124674:0crwdne124674:0",
   "store/reviews.list.graph.stars": "crwdns124676:0value={value}crwdne124676:0",
   "store/reviews.summary.add.login": "crwdns124678:0crwdne124678:0",
-<<<<<<< HEAD
-  "store/reviews.summary.add.title": "crwdns124680:0crwdne124680:0"
-=======
   "store/reviews.summary.add.title": "crwdns124680:0crwdne124680:0",
   "store/reviews.list.loadingReviews": "crwdns212601:0crwdne212601:0",
   "admin/reviews.reviewsandratings.title": "crwdns223767:0crwdne223767:0",
@@ -120,5 +117,4 @@
   "admin/reviews.displayInLineIfNone.title": "crwdns223797:0crwdne223797:0",
   "admin/reviews.displaySummaryTotalReviews.title": "crwdns223799:0crwdne223799:0",
   "admin/reviews.displaySummaryAddButton.title": "crwdns223801:0crwdne223801:0"
->>>>>>> 39c0e1ac8e948bc5ee0ad103377dac7a661c7239
 }
